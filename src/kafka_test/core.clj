@@ -10,7 +10,8 @@
            [clojure.core.async :as a :refer [go <! >!]])
   
   (require [kafka-test.kafka :refer :all])
-  (require [beicon.core :as rx]))
+  (require [beicon.core :as rx])
+  (use ruiyun.tools.timer))
 
 (defroutes all-routes
   (GET "/" [] "Hello world")

@@ -12,6 +12,7 @@
     [http-kit "2.2.0"]
     [spootnik/kinsky "0.1.22"]
     [funcool/beicon "4.1.0"]
+    [ruiyun/tools.timer "1.0.1"]
     ;[org.slf4j/log4j-over-slf4j "1.7.25"]
     ]
   :main kafka-test.core)
