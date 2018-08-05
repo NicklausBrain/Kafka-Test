@@ -1,68 +1,47 @@
-(ns kafka-test.core (:gen-class)
-  (import org.apache.kafka.common.serialization.StringSerializer)
-  (import org.apache.kafka.common.serialization.StringDeserializer)
-  (import org.apache.kafka.clients.consumer.KafkaConsumer)
-  (import org.apache.kafka.common.TopicPartition)
-  (import java.util.Arrays))
+(ns kafka-test.core
+  (:gen-class)
+  (:use org.httpkit.server)
+  (:use [compojure.route :only [files not-found]]
+        [compojure.handler :only [site]] ; form, query params decode; cookie; session, etc
+        [compojure.core :only [defroutes GET POST DELETE ANY context]]
+        org.httpkit.server)
+ (:require [kinsky.client      :as client]
+           [kinsky.async       :as async]
+           [clojure.core.async :as a :refer [go <! >!]])
+  
+  (require [kafka-test.kafka :refer :all])
+  (require [beicon.core :as rx]))
 
-(def jaasTemplate "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"%s\" password=\"%s\";")
+(defroutes all-routes
+  (GET "/" [] "Hello world")
+  ;(GET "/ws" [] chat-handler)     ;; websocket
+  ;(GET "/async" [] async-handler) ;; asynchronous(long polling)
+  ;(context "/user/:id" []
+    ;(GET / [] get-user-by-id)
+    ;(POST / [] update-userinfo))
+  (files "/static/") ;; static file url prefix /static, in `public` folder
+  (not-found "<p>Resource not found.</p>")) ;; all other, return 404
 
-(def brokers (System/getenv "CLOUDKARAFKA_BROKERS"))
-(def username (System/getenv "CLOUDKARAFKA_USERNAME"))
-(def password (System/getenv "CLOUDKARAFKA_PASSWORD"))
+(defn app [req]
+  {:status  200
+   :headers {"Content-Type" "text/html"}
+   :body    "hello HTTP!"})
 
-(def topic (str username "-default"))
 
-(defn init-kafka-props
-  [brokers username password]
-    (doto (new java.util.Properties)
-      (.put "bootstrap.servers", brokers)
-      (.put "group.id", (str username "-consumer"))
-      (.put "enable.auto.commit", "true")
-      (.put "auto.commit.interval.ms", "1000")
-      (.put "auto.offset.reset", "earliest")
-      (.put "session.timeout.ms", "10000")
-      (.put "key.deserializer", (.getName StringDeserializer))
-      (.put "value.deserializer", (.getName StringDeserializer))
-      (.put "key.serializer", (.getName StringSerializer))
-      (.put "value.serializer", (.getName StringSerializer))
-      (.put "security.protocol", "SASL_SSL")
-      (.put "sasl.mechanism", "SCRAM-SHA-256")
-      (.put "sasl.jaas.config", (format jaasTemplate username password))))
+(defonce server (atom nil))
 
-(defn -main []
+(defn stop-server []
+  (when-not (nil? @server)
+    ;; graceful shutdown: wait 100ms for existing requests to be finished
+    ;; :timeout is optional, when no timeout, stop immediately
+    (@server :timeout 100)
+    (reset! server nil)))
+
+(defn -main [& args]
   (def start (System/currentTimeMillis))
-  ;TopicPartition topicPartition = new TopicPartition (topic, 0);
-  ;List partitions = Arrays.asList(topicPartition);
-  ;consumer.assign(partitions);
-  ;consumer.seekToBeginning(partitions);
-
-  (let [brokers (System/getenv "CLOUDKARAFKA_BROKERS")
-        username (System/getenv "CLOUDKARAFKA_USERNAME")
-        password (System/getenv "CLOUDKARAFKA_PASSWORD")
-        consumer (new KafkaConsumer (init-kafka-props brokers username password))
-        topicPartition (new TopicPartition topic 0)
-        partitions (list topicPartition)]
-    ;(println "Hello " username)
-    ;(.assign consumer partitions)
-    ;(.seekToBeginning consumer partitions)
-    (.subscribe consumer (list topic))
-    ;(while true (do
-    (for [record (seq (.poll consumer 100))] 
-        (println
-          (format "%s [%d] offset=%d, key=%s, value=\"%s\"\n"
-          (.topic record)
-          (.partition record)
-          (.offset record)
-          (.key record)
-          (.value record))))
-      ;))
-    )
+  
+  (run-server (site #'all-routes) {:port 8080})
+  ;(reset! server (run-server #'app {:port 8080}))
 
   (def end (System/currentTimeMillis))
   (println (str "Time spent: " (- end start))))
-
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
