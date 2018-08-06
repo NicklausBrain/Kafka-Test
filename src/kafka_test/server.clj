@@ -15,6 +15,8 @@
 
 (def new-id (atom 0))
 (def kafka-observables (atom {}))
+; I assume it is possible to get ried of this state but I didn't get how to combine 
+; multiple observables into single backpressure-aware observable (passing state as parameter)
 (def state (atom {}))
 
 (defn get-filter [request]
