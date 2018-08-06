@@ -13,32 +13,22 @@
            [ring.middleware.json :as middleware]
            [ring.middleware.cors :refer [wrap-cors]]))
 
-(def xrequest (atom [])) ; debug
-
-(def topic "kafka-test") ;debug
-
-
 (def new-id (atom 0))
 (def kafka-observables (atom {}))
 (def state (atom {}))
 
 (defn get-filter [request]
     (let [id (request :id)]
-        (swap! xrequest (fn [x] (conj x request)))
         (if (nil? id) (vals @state) (@state id))))
 
 (defn post-filter [request]
   (let [filter (request :body)
-        id (swap! new-id inc)]
-        (swap! state #(add-filter % id (filter :topic) (filter :match)))
-        (let [topic (filter :topic)]
-          (if (contains? @kafka-observables topic)
-            ()
-            (let [kafka-messages (rx-kafka-messages topic)]
-              (swap! kafka-observables #(merge % {topic kafka-messages}))
-              (rx/on-value kafka-messages (fn [message] (swap! state #(match-message % message))))))
-        ;(swap! kafka-observables #())
-    "OK")))
+        id (swap! new-id inc)
+        topic (filter :topic)]
+        (swap! state #(add-filter % id topic (filter :match)))
+        (try-add-observable-topic topic kafka-observables rx-kafka-messages
+            (fn [message] (swap! state #(match-message % message))))
+    "OK"))
 
 (defn delete-filter [request]
   (let [id (request :id)]
@@ -53,10 +43,8 @@
 ;      (GET / [] (fn [req] ))
 ;      (DELETE / [] delete-filter))
   (route/resources "/")
-  (route/not-found "Resource not found") ;; static file url prefix /static, in `public` folder
+  (route/not-found "Resource not found")
 )
-
-
 
 (def app (->
   all-routes

@@ -7,6 +7,18 @@ var f = fetch("/filter", {
     }
 });
 
+var f = fetch("/filter", {
+  method: "POST",
+  body: JSON.stringify({topic: "kafka-test", match: "bionic"}),
+  headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+});
+
 ./kafka-console-producer.sh --broker-list mbrain.top:9092 --topic kafka-test
+Hello beaver
+Hello bionic
+Bionic Beaver
 
 ./kafka-console-consumer.sh --bootstrap-server mbrain.top:9092 --topic kafka-test --from-beginning

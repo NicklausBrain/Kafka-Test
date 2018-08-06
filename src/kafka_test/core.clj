@@ -1,4 +1,5 @@
-(ns kafka-test.core)
+(ns kafka-test.core
+  (require [beicon.core :as rx]))
 
 (defn add-filter [state id topic match]
   (merge state {id {:id id :topic topic :match match :messages []}}))
@@ -22,3 +23,11 @@
     (->> filters
          (map #(hash-map (:id %) %))
          (into {}))))
+
+(defn try-add-observable-topic [topic observable-topics new-observable-topic notify-new-message]
+  (if (contains? @observable-topics topic)
+    false
+    (let [kafka-messages (new-observable-topic topic)]
+      (swap! observable-topics  #(merge % {topic kafka-messages}))
+      (rx/on-value kafka-messages notify-new-message)
+      true)))
