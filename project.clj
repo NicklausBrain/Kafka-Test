@@ -17,4 +17,4 @@
     [compojure "1.6.1"]
     ;[org.slf4j/log4j-over-slf4j "1.7.25"]
     ]
-  :main kafka-test.core)
+  :main kafka-test.server)
