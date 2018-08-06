@@ -3,3 +3,4 @@ target/
 ck.bat
 .lein-repl-history
 .nrepl-port
+.lein-failures

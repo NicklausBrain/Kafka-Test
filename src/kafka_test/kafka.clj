@@ -11,7 +11,6 @@
 ;(def brokers (System/getenv "bootstrap.servers"))
 ; (def username (System/getenv "CLOUDKARAFKA_USERNAME"))
 ; (def password (System/getenv "CLOUDKARAFKA_PASSWORD"))
-(def topic "kafka-test")
 
 (defn init-kafka-props
   []
@@ -32,11 +31,7 @@
     ;(.put "sasl.jaas.config", (format jaasTemplate username password)
 ))
 
-
-;(.seekToBeginning consumer partitions)
-;(rx/on-value c #(println "v:" %))
-;rx/from-coll
-(defn new-consumer []
+(defn rx-kafka-messages [topic]
   (let [consumer (new KafkaConsumer (init-kafka-props))
         topicPartition (new TopicPartition topic 0)
         partitions (list topicPartition)]
@@ -44,7 +39,7 @@
     (rx/create (fn [sink]
         (run-task! (fn []
             (let [records (for [record (seq (.poll consumer 100))] (.value record))]
-                (if (empty? records) () (sink records)))) :period 500)
+                (if (empty? records) () (doall (map sink records))))) :period 500)
         (fn []
           ;; function called on unsubscription
         )))))
