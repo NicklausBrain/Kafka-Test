@@ -12,14 +12,12 @@
     (clojure.string/lower-case match)))
 
 (defn match-message [state message]
-  (let [filters
-    (map
-      (fn [filter]
-        (if (and
-          (.equals (message :topic) (filter :topic))
-          (match? (message :value) (filter :match)))
-            (merge filter {:messages (conj (filter :messages) (message :value))})
-            filter))
+  (let [filters (map (fn [filter]
+    (if (and
+      (.equals (message :topic) (filter :topic))
+      (match? (message :value) (filter :match)))
+        (merge filter {:messages (conj (filter :messages) (message :value))})
+        filter))
       (vals state))]
     (->> filters
          (map #(hash-map (:id %) %))

@@ -38,7 +38,7 @@
     (.assign consumer partitions)
     (rx/create (fn [sink]
         (run-task! (fn []
-            (let [records (for [record (seq (.poll consumer 100))] (.value record))]
+            (let [records (for [record (seq (.poll consumer 100))] {:topic topic :value (.value record)})]
                 (if (empty? records) () (doall (map sink records))))) :period 500)
         (fn []
           ;; function called on unsubscription
