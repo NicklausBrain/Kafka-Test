@@ -33,7 +33,7 @@
     "OK"))
 
 (defn delete-filter [request]
-  (let [id (request :id)]
+  (let [id ((request :body) :id)]
     (swap! state #(remove-filter % id))
     "OK"))
 
@@ -41,9 +41,7 @@
   (GET "/" [] "Hello!")
   (GET "/filter" [] get-filter)
   (POST "/filter" [] post-filter)
-;   (context "/filter:id" [id]
-;      (GET / [] (fn [req] ))
-;      (DELETE / [] delete-filter))
+  (DELETE "/filter" [] delete-filter)
   (route/resources "/")
   (route/not-found "Resource not found")
 )
