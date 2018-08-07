@@ -1,6 +1,7 @@
 (ns kafka-test.server
   (:gen-class)
   (:use org.httpkit.server)
+  (require [clojure.string :as str])
   (require [kafka-test.kafka :refer :all])
   (require [kafka-test.core :refer :all])
   (require [ring.middleware.params :refer :all])
@@ -14,14 +15,21 @@
            [ring.middleware.cors :refer [wrap-cors]]))
 
 (def new-id (atom 0))
-(def kafka-observables (atom {}))
+(def kafka-observables (atom {})) ;move to state
 ; I assume it is possible to get rid of this state but I didn't get how to combine 
 ; multiple observables into single backpressure-aware observable (passing state as parameter)
 (def state (atom {}))
 
+(defn parse-query-string [qs]
+  (if (> (count qs) 0)
+    (apply hash-map (str/split qs #"[&=]"))))
+
 (defn get-filter [request]
-    (let [id (request :id)]
-        (if (nil? id) (vals @state) (@state id))))
+    (let [query-string (parse-query-string (request :query-string))
+          id (if (nil? query-string) nil (query-string "id"))]
+        (if (str/blank? id)
+          (vals @state)
+          (str (@state (. Integer parseInt id))))))
 
 (defn post-filter [request]
   (let [filter (request :body)
