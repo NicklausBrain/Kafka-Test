@@ -15,7 +15,6 @@
            [ring.middleware.cors :refer [wrap-cors]]))
 
 (def new-id (atom 0))
-(def kafka-observables (atom {})) ;move to state
 ; I assume it is possible to get rid of this state but I didn't get how to combine 
 ; multiple observables into single backpressure-aware observable (passing state as parameter)
 (def state (atom {}))
@@ -28,16 +27,17 @@
     (let [query-string (parse-query-string (request :query-string))
           id (if (nil? query-string) nil (query-string "id"))]
         (if (str/blank? id)
-          (vals @state)
-          (str (@state (. Integer parseInt id))))))
+          (vals (@state :filters))
+          (str ((@state :filters) (. Integer parseInt id))))))
 
 (defn post-filter [request]
   (let [filter (request :body)
         id (swap! new-id inc)
         topic (filter :topic)]
-        (swap! state #(add-filter % id topic (filter :match)))
-        (try-add-observable-topic topic kafka-observables listen-kafka ; get rid of this function
-            (fn [message] (swap! state #(match-message % message))))
+        (swap! state
+          (fn [old-state]
+            (add-filter old-state id topic (filter :match) listen-kafka
+             (fn [message] (swap! state #(match-message % message))))))
     "OK"))
 
 (defn delete-filter [request]
@@ -54,8 +54,7 @@
   (route/not-found "Resource not found")
 )
 
-(def app (->
-  all-routes
+(def app (-> all-routes
   (wrap-cors :access-control-allow-origin [#".*"]
              :access-control-allow-methods [:get :put :post :delete])
   (middleware/wrap-json-body {:keywords? true :bigdecimals? true})
@@ -70,9 +69,6 @@
     (reset! server nil)))
 
 (defn -main [& args]
-  (def start (System/currentTimeMillis))
-
-  (reset! server (run-server #'app {:port 8080}))
-
-  (def end (System/currentTimeMillis))
-  (println (str "Time spent: " (- end start))))
+  (let [port 8080]
+    (reset! server (run-server #'app {:port port}))
+    (println "server started on " port)))
