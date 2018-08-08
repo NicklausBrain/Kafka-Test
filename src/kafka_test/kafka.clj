@@ -31,24 +31,27 @@
     ;(.put "sasl.jaas.config", (format jaasTemplate username password)
 ))
 
-(defn rx-kafka-messages [topic]
+(defn listen-kafka [topic]
   (let [consumer (new KafkaConsumer (init-kafka-props))
         topicPartition (new TopicPartition topic 0)
         partitions (list topicPartition)
-        consumtion-timer (timer "timer for kafka messages consumtion")]
+        consumtion-timer (timer "timer for kafka messages consumtion")
+        kafka-subject (rx/subject)
+        dispose-subscription
+          (rx/subscribe
+            kafka-subject
+            (fn [value] ())
+            (fn [error] (println error))
+            (fn []
+              (println "disposing consumer for " topic)
+              (cancel! consumtion-timer)
+              (.unsubscribe consumer)
+              (.close consumer)))]
     (.assign consumer partitions)
-    (rx/create
-      (fn [sink]
-        (run-task!
-          (fn []
-            (let [records (for [record (seq (.poll consumer 100))] {:topic topic :value (.value record)})]
-              (if (empty? records) () (doall (map sink records)))))
-          :period 500
-          :by consumtion-timer)
-        (fn []
-          ;; function called on unsubscription
-          (println "function called on unsubscription " topic)
-          (cancel! consumtion-timer)
-          (.unsubscribe consumer)
-          (.close consumer)
-        )))))
+    (run-task!
+      (fn []
+       (let [records (for [record (seq (.poll consumer 100))] {:topic topic :value (.value record)})]
+         (if (empty? records) () (doall (map #(rx/push! kafka-subject %) records)))))
+     :period 500
+     :by consumtion-timer)
+    kafka-subject))

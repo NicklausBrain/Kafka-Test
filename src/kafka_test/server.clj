@@ -36,7 +36,7 @@
         id (swap! new-id inc)
         topic (filter :topic)]
         (swap! state #(add-filter % id topic (filter :match)))
-        (try-add-observable-topic topic kafka-observables rx-kafka-messages
+        (try-add-observable-topic topic kafka-observables listen-kafka
             (fn [message] (swap! state #(match-message % message))))
     "OK"))
 
