@@ -22,7 +22,7 @@
           (state :subjects))]
     (merge state {:subjects subjects :filters filters})))
 
-(defn match? [str match]
+(defn- match? [str match]
   (.contains
     (clojure.string/lower-case str)
     (clojure.string/lower-case match)))

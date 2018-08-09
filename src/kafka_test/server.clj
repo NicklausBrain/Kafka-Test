@@ -1,13 +1,12 @@
-(ns kafka-test.server
-  (:gen-class)
-  (:use org.httpkit.server)
+(ns kafka-test.server (:gen-class)
+  (use org.httpkit.server)
+  (use ruiyun.tools.timer)
+  (use ring.util.response)
   (require [clojure.string :as str])
   (require [kafka-test.kafka :refer :all])
   (require [kafka-test.core :refer :all])
   (require [ring.middleware.params :refer :all])
   (require [beicon.core :as rx])
-  (use ruiyun.tools.timer)
-  (use ring.util.response)
   (require [compojure.core :refer :all]
            [compojure.route :as route]
            [ring.middleware.defaults :refer :all]
@@ -24,8 +23,8 @@
     (apply hash-map (str/split qs #"[&=]"))))
 
 (defn get-filter [request]
-    (let [query-string (parse-query-string (request :query-string))
-          id (if (nil? query-string) nil (query-string "id"))]
+  (let [query-string (parse-query-string (request :query-string))
+        id (if-not (nil? query-string) (query-string "id"))]
         (if (str/blank? id)
           (vals (@state :filters))
           (str ((@state :filters) (. Integer parseInt id))))))
@@ -51,15 +50,13 @@
   (POST "/filter" [] post-filter)
   (DELETE "/filter" [] delete-filter)
   (route/resources "/")
-  (route/not-found "Resource not found")
-)
+  (route/not-found "Resource not found"))
 
 (def app (-> all-routes
   (wrap-cors :access-control-allow-origin [#".*"]
              :access-control-allow-methods [:get :put :post :delete])
   (middleware/wrap-json-body {:keywords? true :bigdecimals? true})
-  (middleware/wrap-json-response)
-))
+  (middleware/wrap-json-response)))
 
 (defonce server (atom nil))
 

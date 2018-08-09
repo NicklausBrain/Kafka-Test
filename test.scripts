@@ -16,6 +16,24 @@ var f = fetch("/filter", {
     }
 });
 
+var f = fetch("/filter", {
+  method: "DELETE",
+  body: JSON.stringify({id: 1}),
+  headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+});
+
+var f = fetch("/filter", {
+  method: "DELETE",
+  body: JSON.stringify({id: 2}),
+  headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+});
+
 ./kafka-console-producer.sh --broker-list mbrain.top:9092 --topic kafka-test
 Hello beaver
 Hello bionic
