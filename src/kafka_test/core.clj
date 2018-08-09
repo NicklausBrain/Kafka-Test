@@ -1,4 +1,5 @@
 (ns kafka-test.core
+  (require [clojure.string :as str])
   (require [beicon.core :as rx]))
 
 (defn add-filter [state id topic match listen-kafka match-message]
@@ -11,7 +12,15 @@
     (merge-with into state {:filters {id {:id id :topic topic :match match :messages []}}})))
 
 (defn remove-filter [state id]
-  (dissoc state id))
+  (let [topic (((state :filters) id) :topic)
+        filters (dissoc (state :filters) id)
+        topic-filters (filter #(= topic (% :topic)) (vals filters))
+        subjects (if (= 0 (count topic-filters))
+          (let [subject ((state :subjects) topic)]
+            (rx/end! subject) ;todo: test
+            (dissoc (state :subjects) topic))
+          (state :subjects))]
+    (merge state {:subjects subjects :filters filters})))
 
 (defn match? [str match]
   (.contains

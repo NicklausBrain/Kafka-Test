@@ -41,9 +41,14 @@
 
 (deftest remove-filter-test
   (testing "removes filter from state by id"
-    (is (=
-         {2 {:id 2 :topic "test2" :match "rabbit"}}
-         (remove-filter
-          {1 {:id 1 :topic "test" :match "beaver"}
-           2 {:id 2 :topic "test2" :match "rabbit"}}
-          1)))))
+    (let [test-subject (rx/subject)
+          test-subject2 (rx/subject)]
+      (is (=
+           {:filters {2 {:id 2 :topic "test2" :match "rabbit"}}
+            :subjects {"test2" test-subject2}}
+           (remove-filter
+            {:filters {1 {:id 1 :topic "test" :match "beaver"}
+                       2 {:id 2 :topic "test2" :match "rabbit"}}
+             :subjects {"test" test-subject "test2" test-subject2}}
+            1)))
+)))
