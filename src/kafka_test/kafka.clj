@@ -33,6 +33,7 @@
 
 (defn listen-kafka [topic]
   (let [consumer (new KafkaConsumer (init-kafka-props))
+        consumer-lock (Object.)
         topicPartition (new TopicPartition topic 0)
         partitions (list topicPartition)
         consumtion-timer (timer "timer for kafka messages consumtion")
@@ -43,15 +44,19 @@
             (fn [value] ())
             (fn [error] (println error))
             (fn []
-              (println "disposing consumer for " topic)
-              (cancel! consumtion-timer)
-              (.unsubscribe consumer)
-              (.close consumer)))]
+              (locking consumer-lock
+                (println "disposing consumer for " topic)
+                (cancel! consumtion-timer)
+                (.unsubscribe consumer)
+                (.close consumer))
+              ))]
     (.assign consumer partitions)
     (run-task!
       (fn []
-       (let [records (for [record (seq (.poll consumer 100))] {:topic topic :value (.value record)})]
-         (if (empty? records) () (doall (map #(rx/push! kafka-subject %) records)))))
-     :period 500
-     :by consumtion-timer)
+        (let [records (for [record (seq (locking consumer-lock (.poll consumer 100)))]
+          {:topic topic :value (.value record)})]
+          (if-not (empty? records)
+            (doall (map (fn [record] (rx/push! kafka-subject record)) records)))))
+      :period 500
+      :by consumtion-timer)
     kafka-subject))
