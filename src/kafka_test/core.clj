@@ -4,11 +4,11 @@
 
 (defn add-filter [state id topic match listen-kafka match-message]
   (let [state
-    (if-not (contains? (state :subjects) topic)
-      (let [new-subject (listen-kafka topic)]
-        (rx/on-value new-subject match-message) ; todo: test it
-        (merge state {:subjects {topic new-subject}}))
-      state)]
+      (if-not (contains? (state :subjects) topic)
+        (let [new-subject (listen-kafka topic)]
+          (rx/on-value new-subject match-message) ; todo: test it
+          (merge state {:subjects {topic new-subject}}))
+        state)]
     (merge-with into state {:filters {id {:id id :topic topic :match match :messages []}}})))
 
 (defn remove-filter [state id]
@@ -17,7 +17,7 @@
         topic-filters (filter #(= topic (% :topic)) (vals filters))
         subjects (if (= 0 (count topic-filters))
           (let [subject ((state :subjects) topic)]
-            (rx/end! subject) ;todo: test
+            (rx/end! subject) ; todo: test it
             (dissoc (state :subjects) topic))
           (state :subjects))]
     (merge state {:subjects subjects :filters filters})))

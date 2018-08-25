@@ -34,8 +34,8 @@
 (defn listen-kafka [topic]
   (let [consumer (new KafkaConsumer (init-kafka-props))
         consumer-lock (Object.)
-        topicPartition (new TopicPartition topic 0)
-        partitions (list topicPartition)
+        topic-partition (new TopicPartition topic 0)
+        partitions (list topic-partition)
         consumtion-timer (timer "timer for kafka messages consumtion")
         kafka-subject (rx/subject)
         dispose-subscription

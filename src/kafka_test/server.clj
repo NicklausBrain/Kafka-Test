@@ -25,18 +25,21 @@
 (defn get-filter [request]
   (let [query-string (parse-query-string (request :query-string))
         id (if-not (nil? query-string) (query-string "id"))]
-        (if (str/blank? id)
-          (vals (@state :filters))
-          (str ((@state :filters) (. Integer parseInt id))))))
+    (if (str/blank? id)
+      (vals (@state :filters))
+      (str ((@state :filters) (. Integer parseInt id))))))
+
+(def filter-lock (Object.))
 
 (defn post-filter [request]
   (let [filter (request :body)
         id (swap! new-id inc)
         topic (filter :topic)]
-        (swap! state
-          (fn [old-state]
-            (add-filter old-state id topic (filter :match) listen-kafka
-             (fn [message] (swap! state #(match-message % message))))))
+    (locking filter-lock
+      (swap! state
+      (fn [old-state]
+        (add-filter old-state id topic (filter :match) listen-kafka
+          (fn [message] (swap! state (fn [state] (match-message state message))))))))  ;(fn [state] (match-message state message))
     "OK"))
 
 (defn delete-filter [request]
