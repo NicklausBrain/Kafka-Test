@@ -37,9 +37,11 @@
         topic (filter :topic)]
     (locking filter-lock
       (swap! state
-      (fn [old-state]
-        (add-filter old-state id topic (filter :match) listen-kafka
-          (fn [message] (swap! state (fn [state] (match-message state message))))))))  ;(fn [state] (match-message state message))
+        (fn [old-state]
+          (add-filter old-state id topic (filter :match) listen-kafka
+            (fn [message]
+              (swap! state
+                (fn [old-state] (match-message old-state message))))))))
     "OK"))
 
 (defn delete-filter [request]
