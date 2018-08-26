@@ -11,7 +11,7 @@
            [compojure.route :as route]
            [ring.middleware.defaults :refer :all]
            [ring.middleware.json :as middleware]
-           [ring.middleware.cors :refer [wrap-cors]])))
+           [ring.middleware.cors :refer [wrap-cors]]))
 
 (def new-id (atom 0))
 (def state (rx/behavior-subject {}))
@@ -21,6 +21,8 @@
   actions))
 
 (rx/on-value transformations (fn [new-state] (rx/push! state new-state)))
+
+(rx/on-value transformations #(println "state:" %))
 
 (defn parse-query-string [qs]
   (if (> (count qs) 0)
