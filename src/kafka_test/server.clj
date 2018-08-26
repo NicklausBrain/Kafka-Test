@@ -11,12 +11,16 @@
            [compojure.route :as route]
            [ring.middleware.defaults :refer :all]
            [ring.middleware.json :as middleware]
-           [ring.middleware.cors :refer [wrap-cors]]))
+           [ring.middleware.cors :refer [wrap-cors]])))
 
 (def new-id (atom 0))
-; I assume it is possible to get rid of this state but I didn't get how to combine 
-; multiple observables into single backpressure-aware observable (passing state as parameter)
-(def state (atom {}))
+(def state (rx/behavior-subject {}))
+(def actions (rx/behavior-subject (.getValue state)))
+(def transformations (rx/scan
+  (fn [state action] (if (fn? action) (action state) state))
+  actions))
+
+(rx/on-value transformations (fn [new-state] (rx/push! state new-state)))
 
 (defn parse-query-string [qs]
   (if (> (count qs) 0)
@@ -26,27 +30,24 @@
   (let [query-string (parse-query-string (request :query-string))
         id (if-not (nil? query-string) (query-string "id"))]
     (if (str/blank? id)
-      (vals (@state :filters))
-      (str ((@state :filters) (. Integer parseInt id))))))
-
-(def filter-lock (Object.))
+      (vals ((.getValue state) :filters))
+      (str (((.getValue state) :filters) (. Integer parseInt id))))))
 
 (defn post-filter [request]
   (let [filter (request :body)
         id (swap! new-id inc)
         topic (filter :topic)]
-    (locking filter-lock
-      (swap! state
-        (fn [old-state]
-          (add-filter old-state id topic (filter :match) listen-kafka
-            (fn [message]
-              (swap! state
-                (fn [old-state] (match-message old-state message))))))))
+    (rx/push! actions 
+      (fn [old-state]
+        (add-filter old-state id topic (filter :match) listen-kafka
+          (fn [message]
+            (rx/push! actions
+              (fn [old-state] (match-message old-state message)))))))
     "OK"))
 
 (defn delete-filter [request]
   (let [id ((request :body) :id)]
-    (swap! state #(remove-filter % id))
+    (rx/push! actions (fn [old-state] (remove-filter old-state id)))
     "OK"))
 
 (defroutes all-routes
@@ -74,3 +75,6 @@
   (let [port 8080]
     (reset! server (run-server #'app {:port port}))
     (println "server started on " port)))
+
+; (require [clojure.reflect :as r])
+; (use [clojure.pprint :only [print-table]]
