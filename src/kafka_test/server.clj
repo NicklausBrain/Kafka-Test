@@ -15,14 +15,18 @@
 
 (def new-id (atom 0))
 (def state (rx/behavior-subject {}))
-(def actions (rx/behavior-subject (.getValue state)))
+(def actions
+  (rx/to-serialized
+    (rx/behavior-subject (.getValue state))))
 (def transformations (rx/scan
-  (fn [state action] (if (fn? action) (action state) state))
+  (fn [state action]
+    (if (fn? action)
+      (action state)
+      state))
   actions))
 
 (rx/on-value transformations (fn [new-state] (rx/push! state new-state)))
 
-(rx/on-value transformations #(println "state:" %))
 
 (defn parse-query-string [qs]
   (if (> (count qs) 0)
@@ -76,7 +80,9 @@
 (defn -main [& args]
   (let [port 8080]
     (reset! server (run-server #'app {:port port}))
-    (println "server started on " port)))
+    (println "server started on " port)
+    (rx/on-value transformations #(println "state:" %) ; debug
+)))
 
 ; (require [clojure.reflect :as r])
 ; (use [clojure.pprint :only [print-table]]
