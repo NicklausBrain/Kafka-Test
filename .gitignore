@@ -1,6 +1,6 @@
 .vs/
-target/
-ck.bat
-.lein-repl-history
-.nrepl-port
-.lein-failures
+clojure/target/
+clojure/ck.bat
+clojure/.lein-repl-history
+clojure/.nrepl-port
+clojure/.lein-failures
