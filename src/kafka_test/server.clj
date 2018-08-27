@@ -1,32 +1,32 @@
 (ns kafka-test.server (:gen-class)
-  (use org.httpkit.server)
-  (use ruiyun.tools.timer)
-  (use ring.util.response)
-  (require [clojure.string :as str])
-  (require [kafka-test.kafka :refer :all])
-  (require [kafka-test.core :refer :all])
-  (require [ring.middleware.params :refer :all])
-  (require [beicon.core :as rx])
-  (require [compojure.core :refer :all]
+  (use org.httpkit.server
+       ruiyun.tools.timer
+       ring.util.response)
+  (require [clojure.string :as str]
+           [kafka-test.kafka :refer :all]
+           [kafka-test.core :refer :all]
+           [ring.middleware.params :refer :all]
+           [beicon.core :as rx]
+           [compojure.core :refer :all]
            [compojure.route :as route]
            [ring.middleware.defaults :refer :all]
            [ring.middleware.json :as middleware]
            [ring.middleware.cors :refer [wrap-cors]]))
 
 (def new-id (atom 0))
+
 (def state (rx/behavior-subject {}))
+
 (def actions
   (rx/to-serialized
     (rx/behavior-subject (.getValue state))))
+
 (def transformations (rx/scan
   (fn [state action]
     (if (fn? action)
       (action state)
       state))
   actions))
-
-(rx/on-value transformations (fn [new-state] (rx/push! state new-state)))
-
 
 (defn parse-query-string [qs]
   (if (> (count qs) 0)
@@ -79,10 +79,11 @@
 
 (defn -main [& args]
   (let [port 8080]
+    (rx/on-value transformations (fn [new-state] (rx/push! state new-state)))
+    (rx/on-value transformations #(println "state:" %))
     (reset! server (run-server #'app {:port port}))
     (println "server started on " port)
-    (rx/on-value transformations #(println "state:" %) ; debug
-)))
+))
 
 ; (require [clojure.reflect :as r])
 ; (use [clojure.pprint :only [print-table]]
