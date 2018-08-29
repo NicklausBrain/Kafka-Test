@@ -4,3 +4,6 @@ clojure/ck.bat
 clojure/.lein-repl-history
 clojure/.nrepl-port
 clojure/.lein-failures
+/fs/tests/obj
+/fs/server/obj
+/fs/core/obj
