@@ -7,3 +7,6 @@ clojure/.lein-failures
 /fs/tests/obj
 /fs/server/obj
 /fs/core/obj
+/fs/tests/bin/Debug/netcoreapp2.1
+/fs/server/bin/Debug/netcoreapp2.1
+/fs/core/bin/Debug/netstandard2.0
